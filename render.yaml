@@ -1,0 +1,16 @@
+databases:
+  - name: instaboost-db
+    databaseName: instaboost
+    user: user123
+    plan: free
+
+services:
+  - type: web
+    name: instaboost-api
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app.py"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+    healthCheckPath: /
