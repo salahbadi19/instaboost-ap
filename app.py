@@ -21,7 +21,6 @@ if DATABASE_URL:
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 else:
     # تطوير محلي: SQLite
-    import os
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(BASE_DIR, 'instaboost.db')}"
 
@@ -117,7 +116,7 @@ def free_trial():
 @app.route("/api/orders/paid", methods=["POST"])
 def paid_order():
     data = request.get_json()
-    if not all(k in data for k in ("service_type", "quantity", "amount_usd", "instagram_target")):
+    if not data or not all(k in data for k in ("service_type", "quantity", "amount_usd", "instagram_target")):
         return jsonify({"error": "Missing fields"}), 400
     service = data["service_type"]
     qty = data["quantity"]
@@ -128,7 +127,7 @@ def paid_order():
         expected = f"{qty * 0.001:.2f}"
     else:
         return jsonify({"error": "Min 100, service: followers/likes"}), 400
-    if provided != expected:
+    if str(provided) != expected:
         return jsonify({"error": f"Expected ${expected}"}), 400
     user = User.query.first()
     if not user:
@@ -147,12 +146,12 @@ def paid_order():
 @app.route("/api/reviews", methods=["POST"])
 def create_review():
     data = request.get_json()
-    if not data or "rating" not in data or "comment" not in data or not (1 <= data["rating"] <= 5):
+    if not data or "rating" not in data or "comment" not in data or not (1 <= int(data["rating"]) <= 5):
         return jsonify({"error": "Valid rating (1-5) and comment required"}), 400
     user = User.query.first()
     if not user:
         return jsonify({"error": "Register first"}), 400
-    review = Review(user_id=user.id, rating=data["rating"], comment=data["comment"])
+    review = Review(user_id=user.id, rating=int(data["rating"]), comment=data["comment"])
     db.session.add(review)
     db.session.commit()
     return jsonify({"id": review.id}), 201
@@ -166,7 +165,7 @@ def get_reviews():
 @app.route("/api/chat/send", methods=["POST"])
 def send_chat_message():
     data = request.get_json()
-    if not data or "message" not in data or "name" not in 
+    if not data or "message" not in data or "name" not in data:
         return jsonify({"error": "name and message required"}), 400
     msg = SupportMessage(name=data["name"], message=data["message"])
     db.session.add(msg)
